@@ -10,7 +10,8 @@ import (
 	"github.com/meowalien/rabbitgather-article/mariadb"
 	"github.com/meowalien/rabbitgather-article/neo4jdb"
 	"github.com/meowalien/rabbitgather-article/redisdb"
-	"github.com/meowalien/rabbitgather-article/restful"
+	"github.com/meowalien/rabbitgather-article/server"
+	"github.com/meowalien/rabbitgather-lib/text"
 	"github.com/sirupsen/logrus"
 	"io"
 	"log"
@@ -20,26 +21,27 @@ import (
 	"time"
 )
 
-var DEBUGMOD = false
-
 const config_file = "../config/config.json"
 
 func initFlags() {
-	flag.BoolVar(&DEBUGMOD, "debug", false, "\"true\" to open debug mode")
+	flag.BoolVar(&conf.DEBUG_MOD, "debug", false, "\"true\" to open debug mode")
 	flag.Parse()
 
-	fmt.Println("debug mod: ", DEBUGMOD)
+	fmt.Println("debug mod: ", conf.DEBUG_MOD)
 }
 
 func initConfig() {
+	//p,_:=filepath.Abs(config_file)
 	var err error
 	conf.GlobalConfig, err = conf.ReadConfig(config_file)
 	if err != nil {
 		log.Fatal("error when open read config file: ", config_file)
 	}
-	if DEBUGMOD {
+	if conf.DEBUG_MOD {
 		pretty.Println("GlobalConfig: ", conf.GlobalConfig)
 	}
+	//p,_:=filepath.Abs(config_file)
+	//pretty.Println("GlobalConfig: ",conf.GlobalConfig)
 }
 
 func initDB() {
@@ -84,13 +86,54 @@ func initRedis() {
 	})
 }
 
+type MyFormatter struct {
+	logrus.Formatter
+	ColorEncoding bool
+}
+
+func (f *MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	b, e := f.Formatter.Format(entry)
+	if !f.ColorEncoding {
+		return b, e
+	}
+	switch entry.Level {
+	case logrus.PanicLevel:
+		fallthrough
+	case logrus.FatalLevel:
+		fallthrough
+	case logrus.ErrorLevel:
+		return text.ColorByteSting(b, text.FgRed), e
+	case logrus.WarnLevel:
+		return text.ColorByteSting(b, text.FgYellow), e
+	case logrus.InfoLevel:
+		return text.ColorByteSting(b, text.FgGreen), e
+	case logrus.DebugLevel:
+		return text.ColorByteSting(b, text.FgBlue), e
+	default:
+		return b, e
+	}
+
+}
+
 func initLogger() {
 	logger := logrus.New()
-	logger.SetFormatter(&logrus.JSONFormatter{
-		// time格式
-		TimestampFormat: time.StampNano,
-		PrettyPrint:     true,
-	})
+
+	//if conf.DEBUG_MOD{
+	//	logger.SetFormatter(&MyFormatter{
+	//		ColorEncoding: true,
+	//		Formatter:&logrus.TextFormatter{
+	//		},
+	//	})
+	//}else{
+	logger.SetFormatter(&MyFormatter{
+		ColorEncoding: conf.DEBUG_MOD,
+		Formatter: &logrus.JSONFormatter{
+			// time格式
+			TimestampFormat: time.StampNano,
+			PrettyPrint:     true,
+		}})
+	//}
+
 	logger.SetReportCaller(true)
 	//輸出終端機
 	logger.SetOutput(io.MultiWriter(os.Stdout))
@@ -113,11 +156,11 @@ func init() {
 
 func main() {
 	defer finalize()
-	global.Logger.Infof("theiohdkjljfdslkfjsdlfd")
 	ctx := context.Background()
 
-	restfulHandler := restful.RestfulHandler{
-		Debug: DEBUGMOD,
+	restfulHandler := server.Server{
+		Config: conf.GlobalConfig.Servers.RestfulServer,
+		Debug:  conf.DEBUG_MOD,
 	}
 	go restfulHandler.Start(ctx)
 
@@ -125,7 +168,7 @@ func main() {
 		var err error
 		err = restfulHandler.Stop(ctx)
 		if err != nil {
-			fmt.Println("Error when close RestfulHandler: ", err.Error())
+			fmt.Println("Error when close Server: ", err.Error())
 			err = nil
 		}
 	})

@@ -5,6 +5,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var DEBUG_MOD bool
+
 func ReadConfig(configFile string) (ArticleConfig ,error){
 	viper.SetConfigFile(configFile)
 	err:= viper.ReadInConfig()
@@ -21,15 +23,15 @@ var GlobalConfig ArticleConfig
 
 // ArticleConfig is the root config struct
 type ArticleConfig struct {
-	DB DatabaseConfig
-	Handler HandlerConfig
+	DB      DatabaseConfig
+	Servers ServerConfig
 }
 
-type HandlerConfig struct {
-	RestfulHandler RestfulHandlerConfiguration
+type ServerConfig struct {
+	RestfulServer RestfulServerConfiguration
 }
 
-type RestfulHandlerConfiguration struct {
+type RestfulServerConfiguration struct {
 	Port string
 }
 
