@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/meowalien/rabbitgather-article/conf"
-	"github.com/meowalien/rabbitgather-article/global"
-	"github.com/meowalien/rabbitgather-article/server/handler"
+	"github.com/meowalien/rabbitgather-article/sec/conf"
+	"github.com/meowalien/rabbitgather-article/sec/logger"
+	"github.com/meowalien/rabbitgather-article/sec/server/handler"
 	"github.com/meowalien/rabbitgather-lib/wrapper"
 	"net/http"
 )
@@ -20,7 +20,7 @@ type Server struct {
 }
 
 func (w *Server) Start(ctx context.Context) {
-	global.Logger.Println("APIServer listen on : ", w.Config.Port)
+	logger.Logger.Println("APIServer listen on : ", w.Config.Port)
 
 	w.ginEngine = &wrapper.GinEngine{
 		Engine:       gin.Default(),
@@ -32,10 +32,10 @@ func (w *Server) Start(ctx context.Context) {
 	w.MountService(ctx)
 	go func() {
 		if err := serverInst.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			global.Logger.Error("error when start Server", err)
+			logger.Logger.Error("error when start Server", err)
 		}
 	}()
-	global.Logger.Info("APIServer Started .")
+	logger.Logger.Info("APIServer Started .")
 }
 
 func (h *Server) Stop(ctx context.Context) error {

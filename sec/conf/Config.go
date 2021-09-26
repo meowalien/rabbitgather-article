@@ -1,9 +1,13 @@
 package conf
 
 import (
+	"fmt"
+	"github.com/kr/pretty"
+	"github.com/meowalien/rabbitgather-lib/db_connect"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
+
 
 var DEBUG_MOD bool
 
@@ -17,6 +21,19 @@ func ReadConfig(configFile string) (ArticleConfig ,error){
 	articleConfig := ArticleConfig{}
 	err = mapstructure.Decode(settingMap,&articleConfig)
 	return articleConfig,err
+}
+
+func InitConfig(configFile string) {
+	fmt.Println("InitConfig ...")
+	//p,_:=filepath.Abs(config_file)
+	var err error
+	GlobalConfig, err = ReadConfig(configFile)
+	if err != nil {
+		panic(fmt.Sprint("error when open read config file: ", configFile))
+	}
+	if DEBUG_MOD {
+		pretty.Println("GlobalConfig: ", GlobalConfig)
+	}
 }
 
 var GlobalConfig ArticleConfig
@@ -36,29 +53,8 @@ type RestfulServerConfiguration struct {
 }
 
 type DatabaseConfig struct {
-	MarinaDB DatabaseConnectConfiguration
-	Neo4J    Neo4JConfiguration
-	Redis RedisConfiguration
+	MarinaDB db_connect.MysqlConnectConfiguration
+	Neo4J db_connect.Neo4JConfiguration
+	Redis db_connect.RedisConfiguration
 }
 
-type DatabaseConnectConfiguration struct {
-	Host     string
-	Database string
-	User     string
-	Password string
-	Port     string
-}
-
-type Neo4JConfiguration struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-}
-
-type RedisConfiguration struct {
-	Host string
-	Port string
-	Password string
-	ID int
-}
